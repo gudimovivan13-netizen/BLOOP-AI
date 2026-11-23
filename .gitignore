@@ -1,0 +1,9 @@
+node_modules/
+generated/
+__pycache__/
+*.pyc
+data/speed_test.txt
+data/shard.parquet
+checkpoints/speed_test.pt
+.DS_Store
+nohup.out

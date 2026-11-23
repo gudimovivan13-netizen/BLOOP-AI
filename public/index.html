@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0d12">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236c8cff'/%3E%3Cstop offset='1' stop-color='%239a6cff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23g)'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EB%3C/text%3E%3C/svg%3E">
+<title>BLOOP AI — твой чат с нейросетью</title>
+<style>
+:root{
+  --bg:#0b0d12; --panel:#12151d; --panel2:#181c26; --border:#262c3a;
+  --text:#e7e9ee; --muted:#8b93a7; --accent:#6c8cff; --accent2:#9a6cff;
+  --user-bubble:#2b3660; --ai-bubble:#171b26; --danger:#ff6c6c;
+  --radius:14px;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+html,body{height:100%}
+body{
+  font-family:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  background:var(--bg); color:var(--text); display:flex; overflow:hidden;
+}
+button{font:inherit; color:inherit; background:none; border:none; cursor:pointer}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+textarea,input{font:inherit; color:inherit}
+
+/* ---------- сайдбар ---------- */
+#sidebar{
+  width:270px; min-width:270px; background:var(--panel); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; height:100%;
+}
+.logo{
+  padding:18px 16px 12px; font-size:20px; font-weight:800; letter-spacing:.5px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.logo small{display:block; font-size:11px; font-weight:400; color:var(--muted); -webkit-text-fill-color:var(--muted); margin-top:2px}
+#newChatBtn{
+  margin:8px 12px; padding:10px 12px; border-radius:10px; text-align:left;
+  background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff; font-weight:600;
+}
+#newChatBtn:hover{filter:brightness(1.1)}
+#chatList{flex:1; overflow-y:auto; padding:4px 8px}
+.chat-item{
+  display:flex; align-items:center; gap:8px; padding:10px; border-radius:10px; cursor:pointer;
+  color:var(--muted); font-size:14px; margin-bottom:2px;
+}
+.chat-item:hover{background:var(--panel2)}
+.chat-item.active{background:var(--panel2); color:var(--text)}
+.chat-item .title{flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.chat-item .del{opacity:0; color:var(--muted); padding:2px 6px; border-radius:6px}
+.chat-item:hover .del{opacity:1}
+.chat-item .del:hover{color:var(--danger); background:rgba(255,108,108,.1)}
+.side-footer{padding:12px 16px; color:var(--muted); font-size:11px; border-top:1px solid var(--border)}
+
+/* ---------- основная колонка ---------- */
+#main{flex:1; display:flex; flex-direction:column; height:100%; min-width:0}
+#topbar{
+  display:flex; align-items:center; gap:10px; padding:10px 14px;
+  border-bottom:1px solid var(--border); background:var(--panel); flex-wrap:wrap;
+}
+#burger{display:none; font-size:20px; padding:4px 8px}
+.model-switch{display:flex; background:var(--panel2); border:1px solid var(--border); border-radius:12px; padding:3px; gap:3px}
+.model-switch button{padding:7px 14px; border-radius:9px; font-size:13px; color:var(--muted); font-weight:600}
+.model-switch button.active{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff}
+.switch-wrap{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted)}
+.switch{position:relative; width:38px; height:20px; background:var(--panel2); border:1px solid var(--border); border-radius:20px; transition:.2s}
+.switch::after{content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--muted); transition:.2s}
+.switch.on{background:linear-gradient(90deg,var(--accent),var(--accent2)); border-color:transparent}
+.switch.on::after{left:20px; background:#fff}
+
+/* ---------- сообщения ---------- */
+#chat{flex:1; overflow-y:auto; padding:18px 14px; scroll-behavior:smooth}
+#chat .inner{max-width:820px; margin:0 auto}
+.msg{margin-bottom:14px; display:flex; gap:10px}
+.msg.user{justify-content:flex-end}
+.bubble{
+  max-width:78%; padding:11px 15px; border-radius:var(--radius); line-height:1.55;
+  font-size:15px; word-wrap:break-word; overflow-wrap:break-word;
+}
+.msg.user .bubble{background:var(--user-bubble); border-top-right-radius:4px}
+.msg.ai{justify-content:flex-start}
+.msg.ai .avatar{width:30px; height:30px; min-width:30px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg,var(--accent),var(--accent2)); font-size:15px}
+.msg.ai .bubble{background:var(--ai-bubble); border:1px solid var(--border); border-top-left-radius:4px}
+.msg.ai .bubble.error{border-color:var(--danger)}
+.bubble pre{background:#0d1017; border:1px solid var(--border); border-radius:8px; padding:10px; overflow-x:auto; margin:8px 0; font-size:13px}
+.bubble code{background:#0d1017; border-radius:4px; padding:1px 5px; font-size:13px; font-family:'SF Mono',Consolas,Menlo,monospace}
+.bubble pre code{background:none; padding:0}
+.bubble img.chat-img{max-width:100%; height:auto; border-radius:10px; margin:8px 0; display:block}
+.bubble .mini-note{color:var(--muted); font-size:12px; margin-top:8px}
+.sources{margin-top:10px; border-top:1px solid var(--border); padding-top:8px; font-size:13px}
+.sources .s{margin-bottom:6px}
+.sources .s .name{color:var(--accent)}
+.sources .s .snip{color:var(--muted); font-size:12px}
+.typing{display:inline-flex; gap:4px; padding:6px 2px}
+.typing i{width:7px; height:7px; border-radius:50%; background:var(--muted); animation:blink 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.2s}
+.typing i:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+#chat:empty::after, #chat .inner:empty::after{
+  content:''; display:block;
+}
+#welcome{max-width:820px; margin:40px auto; text-align:center; padding:0 10px}
+#welcome h1{
+  font-size:clamp(22px,5vw,34px); margin-bottom:10px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+#welcome p{color:var(--muted); font-size:14px; line-height:1.6; max-width:640px; margin:0 auto}
+#examples{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:18px}
+#examples button{
+  padding:9px 14px; border-radius:20px; border:1px solid var(--border); background:var(--panel);
+  font-size:13px; color:var(--muted);
+}
+#examples button:hover{color:var(--text); border-color:var(--accent)}
+
+/* ---------- поле ввода ---------- */
+#composerWrap{padding:10px 14px 16px; background:var(--panel); border-top:1px solid var(--border)}
+#composer{max-width:820px; margin:0 auto}
+#attachPreview{display:none; margin-bottom:8px}
+#attachPreview .chip{display:inline-flex; align-items:center; gap:8px; background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:6px 10px; font-size:13px}
+#attachPreview img{width:34px; height:34px; object-fit:cover; border-radius:6px}
+#attachPreview .rm{color:var(--muted)}
+#attachPreview .rm:hover{color:var(--danger)}
+#inputRow{display:flex; gap:8px; align-items:flex-end; background:var(--panel2); border:1px solid var(--border); border-radius:16px; padding:8px}
+#inputRow textarea{
+  flex:1; background:none; border:none; outline:none; resize:none; max-height:160px;
+  font-size:15px; line-height:1.45; padding:6px 4px;
+}
+#inputRow textarea::placeholder{color:var(--muted)}
+.icon-btn{width:38px; height:38px; min-width:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; color:var(--muted)}
+.icon-btn:hover{background:var(--panel); color:var(--text)}
+.icon-btn.active{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff}
+#sendBtn{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff}
+#sendBtn:disabled{opacity:.5; cursor:default}
+#hint{max-width:820px; margin:8px auto 0; text-align:center; color:var(--muted); font-size:11px}
+
+/* ---------- мобильная версия ---------- */
+#backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:40}
+@media (max-width:640px){
+  #sidebar{position:fixed; left:-290px; z-index:50; transition:left .25s; box-shadow:0 0 40px rgba(0,0,0,.6)}
+  #sidebar.open{left:0}
+  #backdrop.show{display:block}
+  #burger{display:block}
+  .bubble{max-width:88%}
+}
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="logo">BLOOP AI<small>мини-GPT с нуля + мощная модель</small></div>
+  <button id="newChatBtn">+ Новый чат</button>
+  <div id="chatList"></div>
+  <div class="side-footer">Обучено в песочнице z.ai<br>Мини-GPT: ~1.9 млн параметров</div>
+</aside>
+<div id="backdrop"></div>
+
+<main id="main">
+  <div id="topbar">
+    <button id="burger" title="Меню">☰</button>
+    <div class="model-switch">
+      <button id="mPro" class="active">Мощная модель</button>
+      <button id="mMini">Моя нейросеть</button>
+    </div>
+    <label class="switch-wrap" id="searchWrap"><span class="switch" id="searchSwitch"></span>Поиск в интернете</label>
+    <label class="switch-wrap" id="imgWrap"><span class="switch" id="imgSwitch"></span>Рисовать</label>
+  </div>
+
+  <div id="chat"><div class="inner" id="chatInner"></div></div>
+  <div id="welcome">
+    <h1>BLOOP AI</h1>
+    <p>Чат с двумя нейросетями: <b>Мощная модель</b> отвечает на любые вопросы, ищет в интернете, рисует картинки и понимает изображения. <b>Моя нейросеть</b> — настоящий трансформер, обученный с нуля прямо здесь: она сама предсказывает текст символ за символом.</p>
+    <div id="examples">
+      <button>Объясни квантовую запутанность простыми словами</button>
+      <button>Напиши функцию на Python для сортировки списка</button>
+      <button>Нарисуй: космическая станция на орбите Марса</button>
+      <button>Кто такой Дмитрий Менделеев?</button>
+    </div>
+  </div>
+
+  <div id="composerWrap">
+    <div id="composer">
+      <div id="attachPreview"></div>
+      <div id="inputRow">
+        <button class="icon-btn" id="attachBtn" title="Прикрепить картинку (мощная модель)">📎</button>
+        <textarea id="input" rows="1" placeholder="Спроси что-нибудь..."></textarea>
+        <button class="icon-btn" id="sendBtn" title="Отправить">➤</button>
+      </div>
+      <div id="hint">Enter — отправить, Shift+Enter — новая строка. Картинки: 📎 понять изображение, «Рисовать» — создать.</div>
+    </div>
+  </div>
+</main>
+<input type="file" id="fileInput" accept="image/*" style="display:none">
+
+<script>
+'use strict';
+/* ---------- состояние ---------- */
+const STORE_KEY = 'bloop_state_v1';
+let state = { chats: [], currentId: null, model: 'pro' };
+try { const raw = localStorage.getItem(STORE_KEY); if (raw) state = Object.assign(state, JSON.parse(raw)); } catch (e) {}
+let searchOn = false, imageMode = false, pendingImage = null, busy = false;
+
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
+function currentChat() { return state.chats.find((c) => c.id === state.currentId) || null; }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+/* ---------- элементы ---------- */
+const $ = (id) => document.getElementById(id);
+const chatInner = $('chatInner'), chatBox = $('chat'), welcome = $('welcome'),
+  input = $('input'), sendBtn = $('sendBtn'), chatList = $('chatList'),
+  fileInput = $('fileInput'), attachPreview = $('attachPreview');
+
+/* ---------- чаты ---------- */
+function newChat() {
+  const chat = { id: uid(), title: 'Новый чат', messages: [] };
+  state.chats.unshift(chat);
+  state.currentId = chat.id;
+  save(); renderSidebar(); renderMessages(); input.focus();
+  return chat;
+}
+function openChat(id) { state.currentId = id; save(); renderSidebar(); renderMessages(); closeSidebar(); }
+function deleteChat(id, ev) {
+  ev.stopPropagation();
+  state.chats = state.chats.filter((c) => c.id !== id);
+  if (state.currentId === id) state.currentId = state.chats.length ? state.chats[0].id : null;
+  save(); renderSidebar(); renderMessages();
+}
+function renderSidebar() {
+  chatList.innerHTML = '';
+  state.chats.forEach((c) => {
+    const div = document.createElement('div');
+    div.className = 'chat-item' + (c.id === state.currentId ? ' active' : '');
+    const t = document.createElement('span'); t.className = 'title'; t.textContent = c.title;
+    const d = document.createElement('button'); d.className = 'del'; d.textContent = '✕'; d.title = 'Удалить чат';
+    d.addEventListener('click', (e) => deleteChat(c.id, e));
+    div.append(t, d);
+    div.addEventListener('click', () => openChat(c.id));
+    chatList.appendChild(div);
+  });
+}
+
+/* ---------- рендер сообщений ---------- */
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function mdLite(src) {
+  const parts = escapeHtml(String(src)).split('```');
+  let html = '';
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 1) {
+      const body = parts[i].replace(/^\w*\n/, '');
+      html += '<pre><code>' + body + '</code></pre>';
+    } else {
+      let t = parts[i];
+      t = t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+      t = t.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+      t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+      t = t.replace(/(^|[\s>])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+      html += t.replace(/\n/g, '<br>');
+    }
+  }
+  return html;
+}
+function msgNode(m) {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + (m.role === 'user' ? 'user' : 'ai');
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  if (m.role === 'assistant' && m.error) b.classList.add('error');
+  if (m.role === 'assistant') {
+    const av = document.createElement('div'); av.className = 'avatar'; av.textContent = '🤖';
+    wrap.appendChild(av);
+  }
+  if (m.role === 'user' && m.image) {
+    const img = document.createElement('img'); img.className = 'chat-img'; img.src = m.image; img.alt = 'прикреплённое изображение';
+    b.appendChild(img);
+  }
+  const content = document.createElement('div');
+  content.innerHTML = m.role === 'user' ? escapeHtml(m.content).replace(/\n/g, '<br>') : mdLite(m.content);
+  b.appendChild(content);
+  if (m.imageUrl) {
+    const img = document.createElement('img'); img.className = 'chat-img'; img.src = m.imageUrl; img.alt = m.content || 'сгенерированное изображение';
+    b.appendChild(img);
+  }
+  if (m.sources && m.sources.length) {
+    const box = document.createElement('div'); box.className = 'sources';
+    box.innerHTML = '<div style="color:var(--muted);font-size:12px;margin-bottom:6px">Источники:</div>' +
+      m.sources.map((s, i) =>
+        '<div class="s"><a class="name" href="' + escapeHtml(s.url) + '" target="_blank" rel="noopener">[' + (i + 1) + '] ' + escapeHtml(s.name) + '</a>' +
+        '<div class="snip">' + escapeHtml(s.snippet || '') + '</div></div>').join('');
+    b.appendChild(box);
+  }
+  if (m.mini) {
+    const note = document.createElement('div'); note.className = 'mini-note';
+    note.textContent = 'Сгенерировано мини-моделью, обученной с нуля (~1.9 млн параметров)';
+    b.appendChild(note);
+  }
+  wrap.appendChild(b);
+  return wrap;
+}
+function typingNode() {
+  const wrap = document.createElement('div'); wrap.className = 'msg ai';
+  const av = document.createElement('div'); av.className = 'avatar'; av.textContent = '🤖';
+  const b = document.createElement('div'); b.className = 'bubble';
+  b.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+  wrap.append(av, b);
+  return wrap;
+}
+function renderMessages() {
+  chatInner.innerHTML = '';
+  const chat = currentChat();
+  const has = chat && chat.messages.length;
+  welcome.style.display = has ? 'none' : 'block';
+  if (chat) chat.messages.forEach((m) => chatInner.appendChild(msgNode(m)));
+  scrollDown();
+}
+function scrollDown() { chatBox.scrollTop = chatBox.scrollHeight; }
+
+/* ---------- отправка ---------- */
+async function api(path, body) {
+  const resp = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const j = await resp.json().catch(() => ({ error: 'Некорректный ответ сервера' }));
+  if (!resp.ok) throw new Error(j.error || ('Ошибка ' + resp.status));
+  return j;
+}
+async function send() {
+  if (busy) return;
+  const text = input.value.trim();
+  if (!text && !pendingImage) return;
+  let chat = currentChat();
+  if (!chat) chat = newChat();
+  busy = true; sendBtn.disabled = true;
+  input.value = ''; autoSize();
+
+  try {
+    if (imageMode) { await sendImageGen(chat, text); }
+    else if (pendingImage) { await sendVision(chat, text, pendingImage.dataUrl); }
+    else { await sendChat(chat, text); }
+  } catch (e) {
+    chat.messages.push({ role: 'assistant', content: '⚠️ ' + (e.message || 'Что-то пошло не так'), error: true });
+  }
+  if (chat.title === 'Новый чат' && chat.messages.length) chat.title = (chat.messages[0].content || 'Чат').slice(0, 34);
+  pendingImage = null; renderAttach();
+  busy = false; sendBtn.disabled = false;
+  save(); renderSidebar(); renderMessages(); input.focus();
+}
+async function sendChat(chat, text) {
+  chat.messages.push({ role: 'user', content: text });
+  renderMessages();
+  const typing = typingNode(); chatInner.appendChild(typing); scrollDown();
+  const history = chat.messages.slice(-16).map((m) => ({ role: m.role, content: m.content }));
+  const j = await api('/api/chat', { mode: state.model, message: text, history, search: searchOn && state.model === 'pro' });
+  chat.messages.push({ role: 'assistant', content: j.text, sources: j.sources || null, mini: state.model === 'mini' });
+}
+async function sendImageGen(chat, prompt) {
+  chat.messages.push({ role: 'user', content: '🎨 ' + prompt });
+  renderMessages();
+  const typing = typingNode(); chatInner.appendChild(typing); scrollDown();
+  const j = await api('/api/image', { prompt });
+  chat.messages.push({ role: 'assistant', content: 'Готово! Картинка по запросу: «' + prompt + '»', imageUrl: j.url });
+}
+async function sendVision(chat, text, dataUrl) {
+  chat.messages.push({ role: 'user', content: text || 'Что на этой картинке?', image: dataUrl });
+  renderMessages();
+  const typing = typingNode(); chatInner.appendChild(typing); scrollDown();
+  const j = await api('/api/vision', { question: text || 'Опиши это изображение подробно.', image: dataUrl });
+  chat.messages.push({ role: 'assistant', content: j.text });
+}
+
+/* ---------- прикрепление картинки ---------- */
+function renderAttach() {
+  if (pendingImage) {
+    attachPreview.style.display = 'block';
+    attachPreview.innerHTML = '<span class="chip"><img alt=""><span>Картинка прикреплена — модель её поймёт</span><button class="rm" title="Убрать">✕</button></span>';
+    attachPreview.querySelector('img').src = pendingImage.dataUrl;
+    attachPreview.querySelector('.rm').addEventListener('click', () => { pendingImage = null; renderAttach(); });
+  } else { attachPreview.style.display = 'none'; attachPreview.innerHTML = ''; }
+}
+fileInput.addEventListener('change', () => {
+  const f = fileInput.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => { pendingImage = { dataUrl: reader.result }; renderAttach(); };
+  reader.readAsDataURL(f);
+  fileInput.value = '';
+});
+
+/* ---------- переключатели ---------- */
+function setModel(mode) {
+  state.model = mode;
+  save();
+  $('mPro').classList.toggle('active', mode === 'pro');
+  $('mMini').classList.toggle('active', mode === 'mini');
+  const pro = mode === 'pro';
+  for (const el of [$('searchWrap'), $('imgWrap'), $('attachBtn')]) el.style.display = pro ? '' : 'none';
+  input.placeholder = pro ? 'Спроси что-нибудь...' : 'Напиши начало текста — моя нейросеть продолжит в стиле энциклопедии...';
+  if (!pro) { imageMode = false; $('imgSwitch').classList.remove('on'); }
+}
+$('mPro').addEventListener('click', () => setModel('pro'));
+$('mMini').addEventListener('click', () => setModel('mini'));
+$('searchSwitch').addEventListener('click', (e) => { searchOn = !searchOn; e.target.classList.toggle('on', searchOn); });
+$('imgSwitch').addEventListener('click', (e) => {
+  imageMode = !imageMode; e.target.classList.toggle('on', imageMode);
+  input.placeholder = imageMode ? 'Опиши картинку, которую нарисовать...' : 'Спроси что-нибудь...';
+});
+$('attachBtn').addEventListener('click', () => fileInput.click());
+$('newChatBtn').addEventListener('click', () => { newChat(); closeSidebar(); });
+
+/* ---------- ввод ---------- */
+function autoSize() { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px'; }
+input.addEventListener('input', autoSize);
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+sendBtn.addEventListener('click', send);
+document.querySelectorAll('#examples button').forEach((b) => {
+  b.addEventListener('click', () => { input.value = b.textContent; autoSize(); setModel('pro'); input.focus(); });
+});
+
+/* ---------- мобильный сайдбар ---------- */
+function closeSidebar() { $('sidebar').classList.remove('open'); $('backdrop').classList.remove('show'); }
+$('burger').addEventListener('click', () => { $('sidebar').classList.add('open'); $('backdrop').classList.add('show'); });
+$('backdrop').addEventListener('click', closeSidebar);
+
+/* ---------- старт ---------- */
+if (!state.chats.length) newChat();
+renderSidebar(); renderMessages(); setModel(state.model || 'pro'); autoSize();
+</script>
+</body>
+</html>

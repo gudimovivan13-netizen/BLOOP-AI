@@ -1,0 +1,15 @@
+{
+  "name": "bloop-ai",
+  "version": "1.0.0",
+  "description": "BLOOP AI — чат с собственной нейросетью: мини-GPT, обученный с нуля, + мощная LLM (z-ai CLI или любой OpenAI-совместимый API). Поиск в интернете, генерация и понимание картинок.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "train": "python3 python/train.py --corpus data/corpus.txt",
+    "build-corpus": "python3 python/build_corpus.py"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
