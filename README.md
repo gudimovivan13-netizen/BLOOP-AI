@@ -38,10 +38,16 @@ node server.js        # или ./start.sh — он сам поставит PyTor
 ## Обучить свою мини-модель с нуля
 
 ```bash
-# 1. Собрать корпус русских научно-энциклопедических статей (~4 МБ, Wikipedia)
-python3 python/build_corpus.py
+# 1. Корпус: скачай один шард русской Википедии (~171 МБ) и вытащи научные статьи
+mkdir -p data
+curl -L -o data/shard.parquet https://huggingface.co/datasets/wikimedia/wikipedia/resolve/main/20231101.ru/train-00007-of-00021.parquet
+python3 python/extract_corpus.py   # ~2000 научных статей -> data/corpus.txt (~4.5 МБ)
+rm data/shard.parquet
 
-# 2. Обучить (~20–30 минут на обычном CPU, ~7 минут на игровой видеокарте)
+#    Альтернатива: python3 python/build_corpus.py (сбор по API Wikipedia, но API
+#    часто лимитирует частые запросы, поэтому надёжнее вариант с шарда выше)
+
+# 2. Обучить (~20–30 минут на обычном CPU, минуты на игровой видеокарте)
 python3 python/train.py --corpus data/corpus.txt --steps 2600
 
 # 3. Проверить генерацию руками
@@ -89,7 +95,8 @@ bloop-ai/
 │   ├── minigpt.py          # токенизатор + GPT-архитектура на PyTorch
 │   ├── train.py            # обучение
 │   ├── infer.py            # генерация (используется сервером)
-│   └── build_corpus.py     # сбор корпуса с Wikipedia
+│   ├── extract_corpus.py   # извлечение научных статей из дампа Wikipedia
+│   └── build_corpus.py     # альтернативный сбор корпуса по API Wikipedia
 ├── data/corpus.txt         # обучающий корпус
 ├── checkpoints/mini_gpt.pt # обученная модель
 ├── docs/APK_EXE.md         # как превратить проект в APK и EXE
