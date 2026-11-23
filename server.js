@@ -148,7 +148,7 @@ async function webSearch(query) {
 }
 
 async function miniChat(message) {
-  const r = await run(PYTHON, [path.join(PY, 'infer.py'), '--prompt', message, '--max-new', '300', '--temperature', '0.85'], 90000);
+  const r = await run(PYTHON, [path.join(PY, 'infer.py'), '--prompt', message, '--max-new', '300', '--temperature', '0.75'], 90000);
   let j = null;
   try { j = JSON.parse(r.stdout); } catch (_) {}
   if (j && j.ok) return j.text;
